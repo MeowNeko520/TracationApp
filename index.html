@@ -1,0 +1,1128 @@
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的旅遊規劃助手</title>
+    <!-- 引入 Google Fonts & Tailwind CSS & FontAwesome Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Noto+Sans+TC', sans-serif;
+            background-color: #f1f5f9;
+        }
+        /* 自訂拉條式時間選擇器滾輪樣式 */
+        .time-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .time-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        /* 卡片圓弧優化 */
+        .rounded-card {
+            border-radius: 1rem;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased">
+
+    <!-- 頂部導航欄 -->
+    <header class="bg-gradient-to-r from-sky-600 to-indigo-600 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-2 cursor-pointer" onclick="goToHome()">
+                <i class="fa-solid fa-compass text-2xl animate-pulse"></i>
+                <span class="text-xl font-bold tracking-wide">Tracation</span>
+            </div>
+            <div id="nav-trip-title" class="hidden text-md font-medium bg-white/20 px-3 py-1 rounded-full max-w-[200px] truncate md:max-w-xs">
+                <!-- 動態顯示目前行程名稱 -->
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-6 mb-20">
+        
+        <!-- ================= 首頁：行程總覽 ================= -->
+        <section id="page-home" class="space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 md:text-3xl">我的旅遊計畫</h1>
+                    <p class="text-slate-500 text-sm mt-1">開啟你的下一段精采冒險</p>
+                </div>
+                <button onclick="openTripModal()" class="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white px-5 py-3 rounded-xl font-medium shadow-md transition flex items-center justify-center space-x-2 rounded-card">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>新增旅遊計畫</span>
+                </button>
+            </div>
+
+            <!-- 行程卡片容器 -->
+            <div id="trip-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 動態渲染行程卡片 -->
+            </div>
+        </section>
+
+
+        <!-- ================= 詳細頁：行程規劃與管理 ================= -->
+        <section id="page-detail" class="hidden space-y-6">
+            <!-- 回首頁按鈕與主標題 -->
+            <div class="flex items-center space-x-3">
+                <button onclick="goToHome()" class="bg-white hover:bg-slate-100 p-2.5 rounded-xl border border-slate-200 text-slate-600 transition shadow-sm">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2 id="detail-trip-name" class="text-xl md:text-2xl font-bold text-slate-900 truncate">大阪五日遊</h2>
+            </div>
+
+            <!-- 功能頁籤切換 (行程、清單、憑證) -->
+            <div class="bg-white p-1.5 rounded-xl border border-slate-200 flex space-x-1 shadow-sm">
+                <button onclick="switchSubTab('itinerary')" id="tab-btn-itinerary" class="flex-1 py-2.5 text-center font-medium rounded-lg transition text-sky-600 bg-sky-50">
+                    <i class="fa-solid fa-calendar-day mr-1"></i> 行程規劃
+                </button>
+                <button onclick="switchSubTab('checklist')" id="tab-btn-checklist" class="flex-1 py-2.5 text-center font-medium rounded-lg transition text-slate-600 hover:bg-slate-50">
+                    <i class="fa-solid fa-list-check mr-1"></i> 備忘清單
+                </button>
+                <button onclick="switchSubTab('vouchers')" id="tab-btn-vouchers" class="flex-1 py-2.5 text-center font-medium rounded-lg transition text-slate-600 hover:bg-slate-50">
+                    <i class="fa-solid fa-ticket mr-1"></i> 票券憑證
+                </button>
+            </div>
+
+            <!-- 子頁面 1: 行程規劃 -->
+            <div id="sub-page-itinerary" class="space-y-4">
+                <!-- 天數 Tab 軸 -->
+                <div id="day-tabs-container" class="flex space-x-2 overflow-x-auto pb-2 scrollbar-none">
+                    <!-- 動態生成 Day 1, Day 2 ... -->
+                </div>
+
+                <!-- 當天行程操作與列表 -->
+                <div class="bg-white border border-slate-200 rounded-card p-4 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span id="current-day-badge" class="bg-indigo-100 text-indigo-700 font-bold px-3 py-1 rounded-full text-xs">DAY 1</span>
+                            <span id="current-day-date" class="text-sm font-medium text-slate-500">2026-08-11</span>
+                        </div>
+                        <button onclick="openEventModal()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs px-3 py-2 rounded-lg font-medium transition flex items-center space-x-1">
+                            <i class="fa-solid fa-plus"></i> <span>新增行程點</span>
+                        </button>
+                    </div>
+
+                    <!-- 行程時間軸項目容器 -->
+                    <div id="event-timeline-container" class="relative border-l-2 border-slate-100 pl-4 ml-2 space-y-6 my-2">
+                        <!-- 動態生成當天行程項目 -->
+                    </div>
+                </div>
+
+                <!-- 標籤分類管理區區塊 -->
+                <div class="bg-white border border-slate-200 rounded-card p-4 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-slate-900 text-sm"><i class="fa-solid fa-tags text-sky-500 mr-1"></i> 分類標籤管理</h3>
+                        <button onclick="openTagManagerModal()" class="text-xs text-sky-600 hover:underline"><i class="fa-solid fa-gear mr-0.5"></i> 管理標籤</button>
+                    </div>
+                    <div id="tag-display-pool" class="flex flex-wrap gap-1.5">
+                        <!-- 顯示當前可用標籤與選色預覽 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 子頁面 2: 備忘清單 (整合行前、行李) -->
+            <div id="sub-page-checklist" class="hidden bg-white border border-slate-200 rounded-card p-4 shadow-sm space-y-4">
+                <div class="flex border-b border-slate-200 pb-2">
+                    <button onclick="switchChecklistType('prep')" id="chk-tab-prep" class="border-b-2 border-sky-600 text-sky-600 px-4 py-2 font-medium text-sm transition">
+                        行前準備
+                    </button>
+                    <button onclick="switchChecklistType('luggage')" id="chk-tab-luggage" class="border-b-2 border-transparent text-slate-500 px-4 py-2 font-medium text-sm hover:text-slate-800 transition">
+                        行李準備
+                    </button>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-slate-400" id="checklist-count">共 0 項</span>
+                    <button onclick="openChecklistModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-2.5 py-1.5 rounded-lg transition font-medium">
+                        <i class="fa-solid fa-plus mr-0.5"></i> 新增項目
+                    </button>
+                </div>
+                <!-- 清單列表容器 -->
+                <div id="checklist-items-container" class="space-y-2">
+                    <!-- 動態項目 -->
+                </div>
+            </div>
+
+            <!-- 子頁面 3: 票券憑證 -->
+            <div id="sub-page-vouchers" class="hidden space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-slate-900"><i class="fa-solid fa-passport text-indigo-500 mr-1"></i> 我的電子憑證 / 門票</h3>
+                    <button onclick="openVoucherModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-2 rounded-lg transition font-medium shadow-sm">
+                        <i class="fa-solid fa-plus mr-0.5"></i> 新增憑證
+                    </button>
+                </div>
+                <!-- 憑證卡片容器 -->
+                <div id="vouchers-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- 動態憑證卡片 -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- ========================================== MODALS 彈出視窗系列 ========================================== -->
+
+    <!-- 1. 新增/編輯 旅程總卡片 Modal -->
+    <div id="modal-trip" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-card shadow-xl p-5 space-y-4 transform transition-all scale-100">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 id="modal-trip-title" class="text-lg font-bold text-slate-900">新增旅遊計畫</h3>
+                <button onclick="closeTripModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <input type="hidden" id="form-trip-id">
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block font-medium text-slate-700 mb-1">旅程名稱</label>
+                    <input type="text" id="form-trip-name" placeholder="例如：大阪五日遊" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-700 mb-1">開始日期</label>
+                        <input type="date" id="form-trip-start" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-700 mb-1">總天數</label>
+                        <input type="number" id="form-trip-days" min="1" max="30" value="5" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                </div>
+            </div>
+            <div class="flex space-x-2 pt-2 text-sm">
+                <button onclick="closeTripModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 rounded-lg font-medium transition">取消</button>
+                <button onclick="saveTripData()" class="flex-1 bg-sky-600 hover:bg-sky-700 text-white py-2.5 rounded-lg font-medium transition">確認儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 新增/編輯 行程時間點項目 Modal -->
+    <div id="modal-event" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-lg rounded-card shadow-xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 id="modal-event-title" class="text-lg font-bold text-slate-900">新增行程紀錄</h3>
+                <button onclick="closeEventModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <input type="hidden" id="form-event-id">
+            <div class="space-y-3 text-sm">
+                <!-- 自訂滾輪拉條式時間選擇器 -->
+                <div>
+                    <label class="block font-medium text-slate-700 mb-1">設定時間</label>
+                    <div class="flex items-center space-x-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                        <div class="flex-1 text-center">
+                            <span class="text-xs text-slate-400 block">時 (Hour)</span>
+                            <select id="form-event-hour" class="w-full bg-transparent font-bold text-center text-base focus:outline-none py-1 max-h-32 overflow-y-auto">
+                                <!-- JS生成 00-23 -->
+                            </select>
+                        </div>
+                        <span class="font-bold text-lg text-slate-400">:</span>
+                        <div class="flex-1 text-center">
+                            <span class="text-xs text-slate-400 block">分 (Minute)</span>
+                            <select id="form-event-min" class="w-full bg-transparent font-bold text-center text-base focus:outline-none py-1">
+                                <!-- JS生成 00-59 -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-700 mb-1">行程標題</label>
+                    <input type="text" id="form-event-title-input" placeholder="例如：搭乘星宇航空客機" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-700 mb-1">主題標籤</label>
+                        <select id="form-event-tag" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <!-- 動態載入使用者自訂或預設標籤 -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-700 mb-1">地點名稱 (將綁定Google地圖)</label>
+                        <input type="text" id="form-event-location" placeholder="桃園國際機場 / 景點名稱" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-700 mb-1">詳細備註 / 說明</label>
+                    <textarea id="form-event-note" rows="3" placeholder="航班編號、預約序號或是特定注意事項..." class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+                </div>
+            </div>
+            <div class="flex space-x-2 pt-2 text-sm">
+                <button onclick="closeEventModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 rounded-lg font-medium transition">取消</button>
+                <button onclick="saveEventData()" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded-lg font-medium transition">儲存行程項目</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 標籤類型管理器 Modal -->
+    <div id="modal-tag-manager" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-card shadow-xl p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-md font-bold text-slate-900">管理自訂標籤</h3>
+                <button onclick="closeTagManagerModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <!-- 新增/編輯區 -->
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3 text-xs">
+                <input type="hidden" id="form-tag-id">
+                <div class="flex gap-2">
+                    <input type="text" id="form-tag-name" placeholder="標籤名稱(如: 購物)" class="flex-1 px-2.5 py-1.5 border border-slate-300 rounded-md">
+                    <button onclick="saveTagItem()" class="bg-sky-600 text-white px-3 py-1.5 rounded-md font-medium hover:bg-sky-700">儲存</button>
+                </div>
+                <div>
+                    <span class="block text-slate-500 mb-1 font-medium">挑選代表色 (12色可選)：</span>
+                    <div id="tag-color-picker-grid" class="grid grid-cols-6 gap-2">
+                        <!-- 由JS填入12色 -->
+                    </div>
+                </div>
+            </div>
+            <!-- 現有標籤清單 -->
+            <div id="tag-manager-list" class="space-y-1 max-h-48 overflow-y-auto text-sm">
+                <!-- 動態呈現可以編輯或刪除的標籤 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 備忘清單項目 新增/編輯 Modal -->
+    <div id="modal-checklist" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-sm rounded-card shadow-xl p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 id="modal-checklist-title" class="text-md font-bold text-slate-900">新增備忘項目</h3>
+                <button onclick="closeChecklistModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="hidden" id="form-checklist-id">
+            <div class="text-sm space-y-3">
+                <div>
+                    <label class="block font-medium text-slate-700 mb-1">項目名稱</label>
+                    <input type="text" id="form-checklist-text" placeholder="例如：帶護照、換日幣" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+            <div class="flex space-x-2 text-sm pt-1">
+                <button onclick="closeChecklistModal()" class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg">取消</button>
+                <button onclick="saveChecklistItem()" class="flex-1 bg-sky-600 text-white py-2 rounded-lg font-medium">確認</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 憑證卡片 新增/編輯 Modal -->
+    <div id="modal-voucher" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-card shadow-xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 id="modal-voucher-title" class="text-md font-bold text-slate-900">編輯憑證資料</h3>
+                <button onclick="closeVoucherModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="hidden" id="form-voucher-id">
+            <div class="text-sm space-y-3">
+                <div>
+                    <label class="block font-medium text-slate-700 mb-1">憑證或門票名稱</label>
+                    <input type="text" id="form-voucher-name" placeholder="例如：環球影城 Express Pass 7" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-700 mb-1">電子碼 / 預約代號 / 序號</label>
+                    <input type="text" id="form-voucher-code" placeholder="如：QR-987654321" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-700 mb-1">詳細備註 (如入園時間、更換地點)</label>
+                    <textarea id="form-voucher-note" rows="3" placeholder="備註對應的使用規範..." class="w-full px-3 py-2 border border-slate-300 rounded-lg"></textarea>
+                </div>
+            </div>
+            <div class="flex space-x-2 text-sm pt-1">
+                <button onclick="closeVoucherModal()" class="flex-1 bg-slate-100 text-slate-600 py-2 rounded-lg">取消</button>
+                <button onclick="saveVoucherItem()" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-medium">儲存憑證</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. 全局通用詳細資訊查看 Modal (點擊卡片空白處跳出) -->
+    <div id="modal-viewer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="closeViewerModal()">
+        <div class="bg-white w-full max-w-md rounded-card shadow-xl p-6 space-y-4 transform transition-all" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <h3 id="view-modal-title" class="text-lg font-bold text-slate-900">詳細資訊</h3>
+                <button onclick="closeViewerModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="view-modal-body" class="space-y-3 text-sm text-slate-600 whitespace-pre-line leading-relaxed">
+                <!-- 動態注入完整文本內容 -->
+            </div>
+            <div class="pt-2 text-right">
+                <button onclick="closeViewerModal()" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-medium">關閉視窗</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. 全局二次安全確認彈窗 (Confirm Modal) -->
+    <div id="modal-confirm" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-[60] flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-xs rounded-card shadow-xl p-5 text-center space-y-4">
+            <div class="text-rose-500 text-3xl"><i class="fa-solid fa-circle-exclamation animate-bounce"></i></div>
+            <h3 class="font-bold text-slate-900 text-base">安全確認</h3>
+            <p id="confirm-modal-text" class="text-slate-500 text-xs">您確定要刪除此項目嗎？刪除後將無法還原。</p>
+            <div class="flex space-x-2 text-xs pt-1">
+                <button onclick="closeConfirmModal(false)" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2 rounded-lg font-medium">取消</button>
+                <button onclick="closeConfirmModal(true)" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2 rounded-lg font-medium">是否確定要刪除</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========================================== JAVASCRIPT 全球核心邏輯系統 ========================================== -->
+    <script>
+        // 12款精選精緻主題顏色庫配對表
+        const COLOR_PALETTE = [
+            { id: "cls-sky", bg: "bg-sky-100", text: "text-sky-700", hex: "#0284c7" },
+            { id: "cls-indigo", bg: "bg-indigo-100", text: "text-indigo-700", hex: "#4f46e5" },
+            { id: "cls-emerald", bg: "bg-emerald-100", text: "text-emerald-700", hex: "#059669" },
+            { id: "cls-amber", bg: "bg-amber-100", text: "text-amber-700", hex: "#d97706" },
+            { id: "cls-rose", bg: "bg-rose-100", text: "text-rose-700", hex: "#e11d48" },
+            { id: "cls-purple", bg: "bg-purple-100", text: "text-purple-700", hex: "#9333ea" },
+            { id: "cls-teal", bg: "bg-teal-100", text: "text-teal-700", hex: "#0d9488" },
+            { id: "cls-orange", bg: "bg-orange-100", text: "text-orange-700", hex: "#ea580c" },
+            { id: "cls-pink", bg: "bg-pink-100", text: "text-pink-700", hex: "#db2777" },
+            { id: "cls-blue", bg: "bg-blue-100", text: "text-blue-700", hex: "#2563eb" },
+            { id: "cls-violet", bg: "bg-violet-100", text: "text-violet-700", hex: "#7c3aed" },
+            { id: "cls-cyan", bg: "bg-cyan-100", text: "text-cyan-700", hex: "#0891b2" }
+        ];
+
+        // 預設核心標籤池系統
+        let globalTags = [
+            { id: "tag-1", name: "交通", colorId: "cls-sky" },
+            { id: "tag-2", name: "航班", colorId: "cls-indigo" },
+            { id: "tag-3", name: "餐飲", colorId: "cls-amber" },
+            { id: "tag-4", name: "景點", colorId: "cls-emerald" },
+            { id: "tag-5", name: "住宿", colorId: "cls-purple" },
+            { id: "tag-6", name: "遊樂園", colorId: "cls-rose" }
+        ];
+
+        // 核心資料庫 (直接內嵌你的大阪五日遊原始機票與影城資料)
+        let appData = {
+            trips: [
+                {
+                    id: "trip-osaka-2026",
+                    name: "大阪五日遊",
+                    startDate: "2026-08-11",
+                    days: 5,
+                    events: [
+                        // Day 1 原始內容：機票抵達
+                        { id: "e-1", dayIndex: 0, hour: "08", min: "10", title: "搭乘星宇航空客機 (JX820)", tagId: "tag-2", location: "桃園國際機場", note: "預計 08:10 起飛，前往大阪關西國際機場 (KIX)。\n請提早2-3小時抵達機場辦理登機與行李託運。" },
+                        { id: "e-2", dayIndex: 0, hour: "12", min: "00", title: "抵達關西國際機場", tagId: "tag-1", location: "關西國際機場", note: "出關後前往搭乘聯外交通工具進入大阪市區。" },
+                        { id: "e-3", dayIndex: 0, hour: "15", min: "00", title: "飯店 Check-in 放置行李", tagId: "tag-5", location: "Hotel Gran Resort Osaka", note: "辦理入住，稍作休息後開始市區漫步與美食行程。" },
+                        
+                        // Day 2 環球影城與 Express Pass 7 詳細排程
+                        { id: "e-4", dayIndex: 1, hour: "08", min: "00", title: "前往日本環球影城 (USJ)", tagId: "tag-6", location: "日本環球影城", note: "持門票與快速通關券準備入場！" },
+                        { id: "e-5", dayIndex: 1, hour: "10", min: "20", title: "超級任天堂世界™ 區域入場限制時間", tagId: "tag-6", location: "超級任天堂世界", note: "★快速通關規定時間，由此時間起可進入馬利歐園區。" },
+                        { id: "e-6", dayIndex: 1, hour: "10", min: "40", title: "耀西冒險 快速通關體驗", tagId: "tag-6", location: "耀西冒險", note: "10:40 - 11:10 區間內必須至設施報到體驗。" },
+                        { id: "e-7", dayIndex: 1, hour: "11", min: "10", title: "瑪利歐賽車～庫巴的挑戰書～ 體驗", tagId: "tag-6", location: "瑪利歐賽車", note: "11:10 - 11:40 區間內至設施快速通關報到。" },
+                        { id: "e-8", dayIndex: 1, hour: "13", min: "00", title: "園區內美味午餐時間", tagId: "tag-3", location: "奇諾比奧咖啡店", note: "享用馬利歐主題精緻造型餐點。" },
+                        { id: "e-9", dayIndex: 1, hour: "16", min: "50", title: "哈利波特魔法世界™ 區域入場時間", tagId: "tag-6", location: "哈利波特的魔法世界", note: "★由快速通關安排的限制時間段進入魔法世界。" },
+                        { id: "e-10", dayIndex: 1, hour: "17", min: "10", title: "鷹馬的飛行 快速通關體驗", tagId: "tag-6", location: "鷹馬的飛行", note: "17:10 - 17:40 區間內報到遊玩。" },
+                        { id: "e-11", dayIndex: 1, hour: "17", min: "40", title: "哈利波特禁忌之旅™ 體驗", tagId: "tag-6", location: "哈利波特禁忌之旅", note: "17:40 - 18:10 區間內報到，享受沉浸式魔法翱翔。" },
+                        
+                        // Day 5 星宇回程
+                        { id: "e-12", dayIndex: 4, hour: "14", min: "00", title: "抵達關西機場辦理登機", tagId: "tag-2", location: "關西國際機場", note: "準備搭乘回程星宇航空班機，建議在此做最後免稅品採購。" }
+                    ],
+                    checklist: [
+                        { id: "c-1", type: "prep", text: "確認護照效期大於六個月", done: true },
+                        { id: "c-2", type: "prep", text: "列印環球影城門票與Express Pass 7 QR碼", done: true },
+                        { id: "c-3", type: "prep", text: "投保旅遊平安險與不便險", done: false },
+                        { id: "c-4", type: "luggage", text: "行動電源、日規變壓充電頭", done: false },
+                        { id: "c-5", type: "luggage", text: "個人換洗衣物五天份與舒適慢跑鞋", done: true }
+                    ],
+                    vouchers: [
+                        { id: "v-1", name: "星宇航空來回機票電子憑證", code: "STAR-JX820-KIX", note: "去程：8/11 JX820 08:10起飛\n回程：8/15 班機請參照星宇App通知" },
+                        { id: "v-2", name: "環球影城 Express Pass 7 快速通關券", code: "USJ-EP7-20260812", note: "包含瑪利歐賽車、禁忌之旅、耀西冒險、鷹馬飛行等熱門項目特定時段通行權。" }
+                    ]
+                }
+            ]
+        };
+
+        // 目前狀態控制變數
+        let currentTripId = null;
+        let currentDayIndex = 0;
+        let currentChecklistType = "prep"; 
+        let activeSelectedColorId = "cls-sky"; // 新增標籤用預設顏色
+
+        // 二次安全確認 Callback 緩存暫存器
+        let confirmActionCallback = null;
+
+        // 初始化載入
+        window.onload = function() {
+            initTimeSelectOptions();
+            initColorPickerGrid();
+            renderTripCards();
+        };
+
+        // 初始化時與分的下拉選項 (對應拉條式選擇需求)
+        function initTimeSelectOptions() {
+            const hSelect = document.getElementById("form-event-hour");
+            const mSelect = document.getElementById("form-event-min");
+            hSelect.innerHTML = "";
+            mSelect.innerHTML = "";
+            for(let i=0; i<24; i++) {
+                let hStr = i < 10 ? "0"+i : ""+i;
+                hSelect.innerHTML += `<option value="${hStr}">${hStr} 點</option>`;
+            }
+            for(let i=0; i<60; i+=5) { // 每5分鐘一跳，方便好選
+                let mStr = i < 10 ? "0"+i : ""+i;
+                mSelect.innerHTML += `<option value="${mStr}">${mStr} 分</option>`;
+            }
+        }
+
+        // 初始化標籤管理中的12色選色盤
+        function initColorPickerGrid() {
+            const grid = document.getElementById("tag-color-picker-grid");
+            grid.innerHTML = "";
+            COLOR_PALETTE.forEach(c => {
+                grid.innerHTML += `
+                    <button type="button" onclick="selectTagColorId('${c.id}')" id="cp-${c.id}" class="w-full h-8 rounded-lg ${c.bg} border-2 border-transparent transition focus:outline-none"></button>
+                `;
+            });
+            selectTagColorId("cls-sky");
+        }
+
+        function selectTagColorId(cid) {
+            COLOR_PALETTE.forEach(c => {
+                const btn = document.getElementById(`cp-${c.id}`);
+                if(btn) {
+                    if(c.id === cid) btn.style.borderColor = "#0f172a"; // 加上深色高亮邊框
+                    else btn.style.borderColor = "transparent";
+                }
+            });
+            activeSelectedColorId = cid;
+        }
+
+        // 安全跳窗控制中心
+        function triggerConfirmModal(message, onConfirm) {
+            document.getElementById("confirm-modal-text").innerText = message;
+            document.getElementById("modal-confirm").classList.remove("hidden");
+            confirmActionCallback = onConfirm;
+        }
+
+        function closeConfirmModal(isConfirmed) {
+            document.getElementById("modal-confirm").classList.add("hidden");
+            if(isConfirmed && confirmActionCallback) {
+                confirmActionCallback();
+            }
+            confirmActionCallback = null;
+        }
+
+        // 頁面與子頁籤路由切換邏輯
+        function goToHome() {
+            document.getElementById("page-home").classList.remove("hidden");
+            document.getElementById("page-detail").classList.add("hidden");
+            document.getElementById("nav-trip-title").classList.add("hidden");
+            currentTripId = null;
+            renderTripCards();
+        }
+
+        function goToDetail(tripId) {
+            currentTripId = tripId;
+            const trip = appData.trips.find(t => t.id === tripId);
+            if(!trip) return;
+
+            document.getElementById("page-home").classList.add("hidden");
+            document.getElementById("page-detail").classList.remove("hidden");
+            
+            // 頂部與主標題同步更新
+            document.getElementById("nav-trip-title").innerText = trip.name;
+            document.getElementById("nav-trip-title").classList.remove("hidden");
+            document.getElementById("detail-trip-name").innerText = trip.name;
+
+            currentDayIndex = 0;
+            switchSubTab("itinerary");
+        }
+
+        // 行程、清單、憑證三個主大分頁切換
+        function switchSubTab(subTab) {
+            ["itinerary", "checklist", "vouchers"].forEach(tab => {
+                const page = document.getElementById(`sub-page-${tab}`);
+                const btn = document.getElementById(`tab-btn-${tab}`);
+                if(tab === subTab) {
+                    page.classList.remove("hidden");
+                    btn.className = "flex-1 py-2.5 text-center font-medium rounded-lg transition text-sky-600 bg-sky-50";
+                } else {
+                    page.classList.add("hidden");
+                    btn.className = "flex-1 py-2.5 text-center font-medium rounded-lg transition text-slate-600 hover:bg-slate-50";
+                }
+            });
+
+            if(subTab === "itinerary") renderItineraryModule();
+            if(subTab === "checklist") renderChecklistModule();
+            if(subTab === "vouchers") renderVouchersModule();
+        }
+
+        // ================= 模組1: 首頁多行程管理 =================
+        function renderTripCards() {
+            const container = document.getElementById("trip-list-container");
+            container.innerHTML = "";
+            
+            if(appData.trips.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 bg-white rounded-card border border-slate-200">
+                        <p class="text-slate-400 text-sm">目前還沒有任何旅遊規劃，點擊上方按鈕開始新增吧！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            appData.trips.forEach(trip => {
+                // 計算總行程終止日期
+                let endD = new Date(trip.startDate);
+                endD.setDate(endD.getDate() + (trip.days - 1));
+                let endStr = endD.toISOString().split('T')[0];
+
+                container.innerHTML += `
+                    <div class="bg-white border border-slate-200 rounded-card shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between overflow-hidden group">
+                        <div class="p-5 cursor-pointer" onclick="goToDetail('${trip.id}')">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="bg-sky-50 text-sky-700 font-bold text-xs px-2.5 py-1 rounded-md"><i class="fa-solid fa-plane-departure mr-1"></i>${trip.days} 天行程</span>
+                                <span class="text-slate-400 group-hover:text-sky-600 transition text-sm"><i class="fa-solid fa-arrow-right-to-bracket"></i></span>
+                            </div>
+                            <h3 class="font-bold text-lg text-slate-900 group-hover:text-sky-600 transition mb-2">${trip.name}</h3>
+                            <div class="text-slate-500 text-xs flex items-center space-x-1">
+                                <i class="fa-regular fa-calendar-minus"></i>
+                                <span>${trip.startDate} ~ ${endStr}</span>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 px-4 py-2.5 border-t border-slate-100 flex justify-end space-x-4 text-xs">
+                            <button onclick="openTripModal('${trip.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center space-x-1">
+                                <i class="fa-solid fa-pen-to-square"></i> <span>編輯</span>
+                            </button>
+                            <button onclick="deleteTripCard('${trip.id}')" class="text-rose-600 hover:text-rose-800 font-medium flex items-center space-x-1">
+                                <i class="fa-solid fa-trash"></i> <span>刪除</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openTripModal(tripId = null) {
+            document.getElementById("modal-trip").classList.remove("hidden");
+            if(tripId) {
+                document.getElementById("modal-trip-title").innerText = "修改旅遊計畫";
+                const trip = appData.trips.find(t => t.id === tripId);
+                document.getElementById("form-trip-id").value = trip.id;
+                document.getElementById("form-trip-name").value = trip.name;
+                document.getElementById("form-trip-start").value = trip.startDate;
+                document.getElementById("form-trip-days").value = trip.days;
+            } else {
+                document.getElementById("modal-trip-title").innerText = "新增旅遊計畫";
+                document.getElementById("form-trip-id").value = "";
+                document.getElementById("form-trip-name").value = "";
+                document.getElementById("form-trip-start").value = new Date().toISOString().split('T')[0];
+                document.getElementById("form-trip-days").value = 5;
+            }
+        }
+
+        function closeTripModal() {
+            document.getElementById("modal-trip").classList.add("hidden");
+        }
+
+        function saveTripData() {
+            const id = document.getElementById("form-trip-id").value;
+            const name = document.getElementById("form-trip-name").value.trim() || "未命名旅程";
+            const startDate = document.getElementById("form-trip-start").value;
+            const days = parseInt(document.getElementById("form-trip-days").value) || 1;
+
+            if(!id) { // 新增
+                let newId = "trip-" + Date.now();
+                appData.trips.push({
+                    id: newId,
+                    name: name,
+                    startDate: startDate,
+                    days: days,
+                    events: [],
+                    checklist: [],
+                    vouchers: []
+                });
+            } else { // 編輯更新
+                const trip = appData.trips.find(t => t.id === id);
+                if(trip) {
+                    trip.name = name;
+                    trip.startDate = startDate;
+                    trip.days = days;
+                }
+            }
+            closeTripModal();
+            renderTripCards();
+        }
+
+        function deleteTripCard(tripId) {
+            triggerConfirmModal("您確定要刪除整個旅程規劃嗎？此動作將一併清除該行程底下所有的詳細編排！", function() {
+                appData.trips = appData.trips.filter(t => t.id !== tripId);
+                renderTripCards();
+            });
+        }
+
+        // ================= 模組2: 詳細頁面天數與行程項目 =================
+        function renderItineraryModule() {
+            const trip = appData.trips.find(t => t.id === currentTripId);
+            if(!trip) return;
+
+            // 修正目前選定的天數索引防爆
+            if(currentDayIndex >= trip.days) currentDayIndex = 0;
+
+            // 1. 渲染天數滑動分頁按鈕軸
+            const tabsContainer = document.getElementById("day-tabs-container");
+            tabsContainer.innerHTML = "";
+            for(let i=0; i<trip.days; i++) {
+                let isActive = i === currentDayIndex;
+                tabsContainer.innerHTML += `
+                    <button onclick="selectDayTab(${i})" class="px-4 py-2 rounded-xl text-sm font-bold transition flex-shrink-0 whitespace-nowrap ${isActive ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}">
+                        Day ${i+1}
+                    </button>
+                `;
+            }
+
+            // 2. 更新當天日期詳細提示資訊
+            document.getElementById("current-day-badge").innerText = `DAY ${currentDayIndex + 1}`;
+            let activeDate = new Date(trip.startDate);
+            activeDate.setDate(activeDate.getDate() + currentDayIndex);
+            document.getElementById("current-day-date").innerText = activeDate.toISOString().split('T')[0];
+
+            // 3. 渲染當天時間軸行程項目列表
+            const timeline = document.getElementById("event-timeline-container");
+            timeline.innerHTML = "";
+
+            // 過濾並按照時間由早到晚自動排序
+            let dayEvents = trip.events.filter(e => e.dayIndex === currentDayIndex);
+            dayEvents.sort((a,b) => (a.hour + ":" + a.min).localeCompare(b.hour + ":" + b.min));
+
+            if(dayEvents.length === 0) {
+                timeline.innerHTML = `
+                    <div class="text-center py-8 text-slate-400 text-xs">
+                        <i class="fa-regular fa-clock text-xl block mb-2 text-slate-300"></i>
+                        這天還沒有排行程，點擊右上方按鈕新增行程紀錄。
+                    </div>
+                `;
+                return;
+            }
+
+            dayEvents.forEach(ev => {
+                const tag = globalTags.find(t => t.id === ev.tagId) || { name: '無分類', colorId: 'cls-sky' };
+                const colorConfig = COLOR_PALETTE.find(c => c.id === tag.colorId) || COLOR_PALETTE[0];
+
+                let mapButtonHtml = "";
+                if(ev.location && ev.location.trim() !== "") {
+                    // Google地圖跳轉導航按鈕優化
+                    let mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.location)}`;
+                    mapButtonHtml = `
+                        <a href="${mapUrl}" target="_blank" class="inline-flex items-center space-x-1 text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md border border-emerald-200 mt-2 font-medium hover:bg-emerald-100 transition">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                            <span>導航至：${ev.location}</span>
+                        </a>
+                    `;
+                }
+
+                timeline.innerHTML += `
+                    <div class="relative group">
+                        <!-- 時間軸小圓點指示符 -->
+                        <div class="absolute -left-[21px] top-1.5 w-3 h-3 rounded-full bg-indigo-500 border-2 border-white shadow-sm ring-4 ring-white"></div>
+                        
+                        <!-- 卡片本體：點擊除按鈕以外區塊觸發完整檢視彈窗 -->
+                        <div onclick="openViewerModal('${ev.title}', \`時間：${ev.hour}:${ev.min}\\n類型：${tag.name}\\n地點：${ev.location || '無'}\\n\\n【詳細備註說明】\\n${ev.note || '無備註'}\`)" 
+                             class="bg-slate-50 border border-slate-200 p-4 rounded-xl shadow-xs hover:border-indigo-200 hover:bg-indigo-50/20 transition duration-150 cursor-pointer">
+                            
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-bold text-slate-900 tracking-tight text-base">${ev.hour}:${ev.min}</span>
+                                    <span class="${colorConfig.bg} ${colorConfig.text} text-[10px] px-2 py-0.5 rounded-md font-bold">${tag.name}</span>
+                                </div>
+                                <!-- 修改刪除按鈕排版：加文字加Icon防誤觸 -->
+                                <div class="flex space-x-3 text-xs self-end sm:self-auto" onclick="event.stopPropagation()">
+                                    <button onclick="openEventModal('${ev.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center space-x-0.5">
+                                        <i class="fa-solid fa-pen"></i> <span>編輯</span>
+                                    </button>
+                                    <button onclick="deleteEventItem('${ev.id}')" class="text-rose-600 hover:text-rose-800 font-medium flex items-center space-x-0.5">
+                                        <i class="fa-solid fa-trash-can"></i> <span>刪除</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h4 class="font-bold text-slate-800 text-sm mt-2">${ev.title}</h4>
+                            ${ev.note ? `<p class="text-slate-500 text-xs mt-1 truncate max-w-xl">${ev.note}</p>` : ''}
+                            
+                            ${mapButtonHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            // 4. 同步底部標籤池展示
+            renderTagPoolDisplay();
+        }
+
+        function selectDayTab(idx) {
+            currentDayIndex = idx;
+            renderItineraryModule();
+        }
+
+        function renderTagPoolDisplay() {
+            const pool = document.getElementById("tag-display-pool");
+            pool.innerHTML = "";
+            globalTags.forEach(t => {
+                const c = COLOR_PALETTE.find(cp => cp.id === t.colorId) || COLOR_PALETTE[0];
+                pool.innerHTML += `
+                    <span class="${c.bg} ${c.text} text-xs px-2.5 py-1 rounded-md font-medium border border-black/5">
+                        ${t.name}
+                    </span>
+                `;
+            });
+        }
+
+        // 行程點項目新增/修改視窗管理
+        function openEventModal(eventId = null) {
+            // 重新刷新注入最新的動態標籤選項
+            const tagSelect = document.getElementById("form-event-tag");
+            tagSelect.innerHTML = "";
+            globalTags.forEach(t => {
+                tagSelect.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+            });
+
+            document.getElementById("modal-event").classList.remove("hidden");
+            const trip = appData.trips.find(t => t.id === currentTripId);
+
+            if(eventId) {
+                document.getElementById("modal-event-title").innerText = "編輯行程點";
+                const ev = trip.events.find(e => e.id === eventId);
+                document.getElementById("form-event-id").value = ev.id;
+                document.getElementById("form-event-hour").value = ev.hour;
+                document.getElementById("form-event-min").value = ev.min;
+                document.getElementById("form-event-title-input").value = ev.title;
+                document.getElementById("form-event-tag").value = ev.tagId;
+                document.getElementById("form-event-location").value = ev.location || "";
+                document.getElementById("form-event-note").value = ev.note || "";
+            } else {
+                document.getElementById("modal-event-title").innerText = "新增行程點";
+                document.getElementById("form-event-id").value = "";
+                document.getElementById("form-event-hour").value = "08";
+                document.getElementById("form-event-min").value = "00";
+                document.getElementById("form-event-title-input").value = "";
+                document.getElementById("form-event-location").value = "";
+                document.getElementById("form-event-note").value = "";
+            }
+        }
+
+        function closeEventModal() {
+            document.getElementById("modal-event").classList.add("hidden");
+        }
+
+        function saveEventData() {
+            const trip = appData.trips.find(t => t.id === currentTripId);
+            const id = document.getElementById("form-event-id").value;
+            
+            const eventPayload = {
+                id: id || "ev-" + Date.now(),
+                dayIndex: currentDayIndex,
+                hour: document.getElementById("form-event-hour").value,
+                min: document.getElementById("form-event-min").value,
+                title: document.getElementById("form-event-title-input").value.trim() || "未命名行程活動",
+                tagId: document.getElementById("form-event-tag").value,
+                location: document.getElementById("form-event-location").value.trim(),
+                note: document.getElementById("form-event-note").value.trim()
+            };
+
+            if(!id) {
+                trip.events.push(eventPayload);
+            } else {
+                const idx = trip.events.findIndex(e => e.id === id);
+                if(idx !== -1) trip.events[idx] = eventPayload;
+            }
+
+            closeEventModal();
+            renderItineraryModule();
+        }
+
+        function deleteEventItem(eventId) {
+            triggerConfirmModal("是否確定要刪除這項行程？此操作無法恢復。", function() {
+                const trip = appData.trips.find(t => t.id === currentTripId);
+                trip.events = trip.events.filter(e => e.id !== eventId);
+                renderItineraryModule();
+            });
+        }
+
+
+        // ================= 模組3: 動態標籤自訂管理器模組 =================
+        function openTagManagerModal() {
+            document.getElementById("modal-tag-manager").classList.remove("hidden");
+            resetTagForm();
+            renderTagManagerList();
+        }
+
+        function closeTagManagerModal() {
+            document.getElementById("modal-tag-manager").classList.add("hidden");
+        }
+
+        function resetTagForm() {
+            document.getElementById("form-tag-id").value = "";
+            document.getElementById("form-tag-name").value = "";
+            selectTagColorId("cls-sky");
+        }
+
+        function renderTagManagerList() {
+            const container = document.getElementById("tag-manager-list");
+            container.innerHTML = "";
+            globalTags.forEach(t => {
+                const c = COLOR_PALETTE.find(cp => cp.id === t.colorId) || COLOR_PALETTE[0];
+                container.innerHTML += `
+                    <div class="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg">
+                        <span class="${c.bg} ${c.text} text-xs px-2 py-0.5 rounded font-bold">${t.name}</span>
+                        <div class="flex space-x-3 text-xs">
+                            <button onclick="editTagItem('${t.id}')" class="text-indigo-600 hover:underline"><i class="fa-solid fa-pen"></i> 修改</button>
+                            <button onclick="deleteTagItem('${t.id}')" class="text-rose-600 hover:underline"><i class="fa-solid fa-trash"></i> 刪除</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function editTagItem(tid) {
+            const tag = globalTags.find(t => t.id === tid);
+            if(!tag) return;
+            document.getElementById("form-tag-id").value = tag.id;
+            document.getElementById("form-tag-name").value = tag.name;
+            selectTagColorId(tag.colorId);
+        }
+
+        function saveTagItem() {
+            const id = document.getElementById("form-tag-id").value;
+            const name = document.getElementById("form-tag-name").value.trim();
+            if(!name) return alert("請填寫標籤名稱");
+
+            if(!id) {
+                globalTags.push({
+                    id: "tag-" + Date.now(),
+                    name: name,
+                    colorId: activeSelectedColorId
+                });
+            } else {
+                const tag = globalTags.find(t => t.id === id);
+                if(tag) {
+                    tag.name = name;
+                    tag.colorId = activeSelectedColorId;
+                }
+            }
+            resetTagForm();
+            renderTagManagerList();
+            renderItineraryModule(); // 同步刷新大畫面的日程表顏色
+        }
+
+        function deleteTagItem(tid) {
+            triggerConfirmModal("刪除該標籤後，原本屬於此標籤的行程將可能失去底色分類，確定刪除嗎？", function() {
+                globalTags = globalTags.filter(t => t.id !== tid);
+                renderTagManagerList();
+                renderItineraryModule();
+            });
+        }
+
+
+        // ================= 模組4: 備忘清單 (行前、行李同區切換標籤) =================
+        function switchChecklistType(type) {
+            currentChecklistType = type;
+            const pBtn = document.getElementById("chk-tab-prep");
+            const lBtn = document.getElementById("chk-tab-luggage");
+
+            if(type === "prep") {
+                pBtn.className = "border-b-2 border-sky-600 text-sky-600 px-4 py-2 font-medium text-sm transition";
+                lBtn.className = "border-b-2 border-transparent text-slate-500 px-4 py-2 font-medium text-sm hover:text-slate-800 transition";
+            } else {
+                lBtn.className = "border-b-2 border-sky-600 text-sky-600 px-4 py-2 font-medium text-sm transition";
+                pBtn.className = "border-b-2 border-transparent text-slate-500 px-4 py-2 font-medium text-sm hover:text-slate-800 transition";
+            }
+            renderChecklistModule();
+        }
+
+        function renderChecklistModule() {
+            const trip = appData.trips.find(t => t.id === currentTripId);
+            if(!trip) return;
+
+            const container = document.getElementById("checklist-items-container");
+            container.innerHTML = "";
+
+            let items = trip.checklist.filter(c => c.type === currentChecklistType);
+            document.getElementById("checklist-count").innerText = `共 ${items.length} 項項目`;
+
+            if(items.length === 0) {
+                container.innerHTML = `<div class="text-slate-400 text-xs text-center py-6">此類別目前尚無項目。</div>`;
+                return;
+            }
+
+            items.forEach(item => {
+                container.innerHTML += `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100/50 transition">
+                        <label class="flex items-center space-x-3 cursor-pointer flex-1">
+                            <input type="checkbox" onchange="toggleChecklistDone('${item.id}', this.checked)" ${item.done ? 'checked' : ''} class="w-4 h-4 text-sky-600 rounded focus:ring-sky-500 border-slate-300">
+                            <span class="text-sm font-medium ${item.done ? 'line-through text-slate-400' : 'text-slate-700'}">${item.text}</span>
+                        </label>
+                        <div class="flex space-x-3 text-xs pl-2">
+                            <button onclick="openChecklistModal('${item.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center space-x-0.5">
+                                <i class="fa-solid fa-pen"></i> <span>編輯</span>
+                            </button>
+                            <button onclick="deleteChecklistItem('${item.id}')" class="text-rose-600 hover:text-rose-800 font-medium flex items-center space-x-0.5">
+                                <i class="fa-solid fa-trash-can"></i> <span>刪除</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleChecklistDone(id, isChecked) {
+            const trip = appData.trips.find(t => t.id === currentTripId);
+            const item = trip.checklist.find(c => c.id === id);
+            if(item) {
+                item.done = isChecked;
+                renderChecklistModule();
+            }
+        }
+
+        function openChecklistModal(id = null) {
+            document.getElementById("modal-checklist").classList.remove("hidden");
+            if(id) {
+                document.getElementById("modal-checklist-title").innerText = "編輯項目描述";
+                const trip = appData.trips.find(t => t.id === currentTripId);
+                const item = trip.checklist.find(c => c.id === id);
+                document.getElementById("form-checklist-id").value = item.id;
+                document.getElementById("form-checklist-text").value = item.text;
+            } else {
+                document.getElementById("modal-checklist-title").innerText = "新增項目";
+                document.getElementById("form-checklist-id").value = "";
+                document.getElementById("form-checklist-text").value = "";
+            }
+        }
+
+        function closeChecklistModal() {
+            document.getElementById("modal-checklist").classList.add("hidden");
+        }
+
+        function saveChecklistItem() {
+            const trip = appData.trips.find(t => t.id === currentTripId);
+            const id = document.getElementById("form-checklist-id").value;
+            const text = document.getElementById("form-checklist-text").value.trim() || "未命名待辦事項";
+
+            if(!id) {
+                trip.checklist.push({
+                    id: "chk-" + Date.now(),
+                    type: currentChecklistType,
+                    text: text,
+                    done: false
+                });
+            } else {
+                const item = trip.checklist.find(c => c.id === id);
+                if(item) item.text = text;
+            }
+            closeChecklistModal();
+            renderChecklistModule();
+        }
+
+        function deleteChecklistItem(id) {
+            triggerConfirmModal("是否確定要刪除這條清單備忘項目？", function() {
+                const trip = appData.trips.find(t => t.id === currentTripId);
+                trip.checklist = trip.checklist.filter(c => c.id !== id);
+                renderChecklistModule();
+            });
+        }
+
+
+        // ================= 模組5: 票券憑證管理管理系統 =================
+        function renderVouchersModule() {
+            const trip = appData.trips.find(t => t.id === currentTripId);
+            if(!trip) return;
+
+            const container = document.getElementById("vouchers-container");
+            container.innerHTML = "";
+
+            if(trip.vouchers.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-slate-400 text-xs text-center py-8">目前尚無上傳或建立任何電子憑證代碼。</div>`;
+                return;
+            }
+
+            trip.vouchers.forEach(v => {
+                container.innerHTML += `
+                    <div onclick="openViewerModal('${v.name}', \`憑證/預約序號碼：${v.code}\\n\\n【詳細使用備註說明】\\n${v.note || '無特定說明'}\`)" 
+                         class="bg-white border border-slate-200 p-4 rounded-xl shadow-xs hover:border-indigo-300 hover:shadow-sm transition cursor-pointer flex flex-col justify-between space-y-3">
+                        <div>
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm"><i class="fa-solid fa-qrcode"></i></div>
+                                    <h4 class="font-bold text-slate-800 text-sm">${v.name}</h4>
+                                </div>
+                            </div>
+                            <div class="mt-2 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-100 text-xs font-mono text-slate-600 select-all truncate">
+                                序號: ${v.code}
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-3 text-xs border-t border-slate-100 pt-2" onclick="event.stopPropagation()">
+                            <button onclick="openVoucherModal('${v.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center space-x-0.5">
+                                <i class="fa-solid fa-pen"></i> <span>編輯</span>
+                            </button>
+                            <button onclick="deleteVoucherItem('${v.id}')" class="text-rose-600 hover:text-rose-800 font-medium flex items-center space-x-0.5">
+                                <i class="fa-solid fa-trash-can"></i> <span>刪除</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openVoucherModal(id = null) {
+            document.getElementById("modal-voucher").classList.remove("hidden");
+            if(id) {
+                document.getElementById("modal-voucher-title").innerText = "編輯憑證資料";
+                const trip = appData.trips.find(t => t.id === currentTripId);
+                const v = trip.vouchers.find(vo => vo.id === id);
+                document.getElementById("form-voucher-id").value = v.id;
+                document.getElementById("form-voucher-name").value = v.name;
+                document.getElementById("form-voucher-code").value = v.code;
+                document.getElementById("form-voucher-note").value = v.note || "";
+            } else {
+                document.getElementById("modal-voucher-title").innerText = "新增電子憑證";
+                document.getElementById("form-voucher-id").value = "";
+                document.getElementById("form-voucher-name").value = "";
+                document.getElementById("form-voucher-code").value = "";
+                document.getElementById("form-voucher-note").value = "";
+            }
+        }
+
+        // 關閉憑證視窗
+        function closeVoucherModal() {
+            document.getElementById("modal-voucher").classList.add("hidden");
+        }
+
+        function saveVoucherItem() {
+            const trip = appData.trips.find(t => t.id === currentTripId);
+            const id = document.getElementById("form-voucher-id").value;
+            const name = document.getElementById("form-voucher-name").value.trim() || "未命名電子憑證";
+            const code = document.getElementById("form-voucher-code").value.trim() || "無代碼";
+            const note = document.getElementById("form-voucher-note").value.trim();
+
+            if(!id) {
+                trip.vouchers.push({ id: "vouc-" + Date.now(), name, code, note });
+            } else {
+                const v = trip.vouchers.find(vo => vo.id === id);
+                if(v) {
+                    v.name = name;
+                    v.code = code;
+                    v.note = note;
+                }
+            }
+            closeVoucherModal();
+            renderVouchersModule();
+        }
+
+        function deleteVoucherItem(id) {
+            triggerConfirmModal("您確定要刪除這項重要的票券憑證嗎？", function() {
+                const trip = appData.trips.find(t => t.id === currentTripId);
+                trip.vouchers = trip.vouchers.filter(vo => vo.id !== id);
+                renderVouchersModule();
+            });
+        }
+
+
+        // ================= 全局萬用詳細資訊檢視查看器 Modal =================
+        function openViewerModal(title, text) {
+            document.getElementById("view-modal-title").innerText = title;
+            document.getElementById("view-modal-body").innerText = text;
+            document.getElementById("modal-viewer").classList.remove("hidden");
+        }
+
+        function closeViewerModal() {
+            document.getElementById("modal-viewer").classList.add("hidden");
+        }
+    </script>
+</body>
+</html>
